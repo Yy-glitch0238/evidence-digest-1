@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "_comment": "Custom journal registry.",
-  "topicFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR immun*[tiab] OR infection*[tiab] OR pathogen*[tiab] OR interferon*[tiab] OR vaccin*[tiab])",
+  "_comment": "Custom journal registry for virus, infection, and immunology evidence.",
+  "topicFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR infection*[tiab] OR immun*[tiab])",
   "journals": [
     {
       "name": "Viruses",
@@ -23,6 +23,202 @@
       "specialty": "selected-journals",
       "tier": 1,
       "scope": "all"
+    },
+    {
+      "name": "Nature",
+      "ta": "Nature",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Science",
+      "ta": "Science",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Cell",
+      "ta": "Cell",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Virology",
+      "ta": "Virology",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Frontiers in Cellular and Infection Microbiology",
+      "ta": "Front Cell Infect Microbiol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Frontiers in Microbiology",
+      "ta": "Front Microbiol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Journal of Virology",
+      "ta": "J Virol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Virologica Sinica",
+      "ta": "Virol Sin",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Nature Structural & Molecular Biology",
+      "ta": "Nat Struct Mol Biol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Nature Medicine",
+      "ta": "Nat Med",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "The Lancet",
+      "ta": "Lancet",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "New England Journal of Medicine",
+      "ta": "N Engl J Med",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Nature Reviews Immunology",
+      "ta": "Nat Rev Immunol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "Immunity",
+      "ta": "Immunity",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "Science Immunology",
+      "ta": "Sci Immunol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "Annual Review of Immunology",
+      "ta": "Annu Rev Immunol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "Nature Reviews Microbiology",
+      "ta": "Nat Rev Microbiol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "Cell Host & Microbe",
+      "ta": "Cell Host Microbe",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "all"
+    },
+    {
+      "name": "mBio",
+      "ta": "mBio",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Vaccine",
+      "ta": "Vaccine",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "NPJ Vaccines",
+      "ta": "NPJ Vaccines",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Human Vaccines & Immunotherapeutics",
+      "ta": "Hum Vaccin Immunother",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Nature Reviews Cancer",
+      "ta": "Nat Rev Cancer",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Cancer Cell",
+      "ta": "Cancer Cell",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Clinical Cancer Research",
+      "ta": "Clin Cancer Res",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Journal of Clinical Oncology",
+      "ta": "J Clin Oncol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "Cancer Research",
+      "ta": "Cancer Res",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
+    },
+    {
+      "name": "The Lancet Oncology",
+      "ta": "Lancet Oncol",
+      "specialty": "selected-journals",
+      "tier": 1,
+      "scope": "topic"
     }
   ]
 }
