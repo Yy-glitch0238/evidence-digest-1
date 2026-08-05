@@ -40,10 +40,13 @@ def _scratch_data_paths(root: Path) -> Paths:
 def _pick_topic_and_journal():
     taxonomy = load_taxonomy()
     journals_cfg = load_journals()
-    specialty = taxonomy.specialties[0]
-    topic = specialty.topics[0]
+    specialty = next(
+        s for s in taxonomy.specialties
+        if any(not topic.catch_all for topic in s.topics)
+    )
+    topic = next(topic for topic in specialty.topics if not topic.catch_all)
     catch_all = specialty.catch_all_topic
-    journal = next(j for j in journals_cfg.journals if j.specialty == specialty.slug)
+    journal = journals_cfg.journals[0]
     return taxonomy, specialty, topic, catch_all, journal
 
 
