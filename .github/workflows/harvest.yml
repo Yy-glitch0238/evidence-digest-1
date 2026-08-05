@@ -8,16 +8,14 @@ name: Harvest
 
 on:
   schedule:
-    # 07:00 UTC daily. PubMed's own indexing has no fixed daily cutoff, so this
-    # time is not load-bearing — it just needs to be roughly once a day. Chosen
-    # to land after the overnight indexing wave for US/European journals.
-    - cron: '0 7 * * *'
+    # Sunday 15:00 UTC / 23:00 Beijing, after the weekly harvest window.
+    - cron: '0 15 * * 0'
   workflow_dispatch:
     inputs:
       days:
-        description: 'How many days of PubMed indexing to harvest (passed to `cli harvest --days`)'
+        description: 'PubMed lookback window in days'
         required: false
-        default: '3'
+        default: '8'
       skip_deploy:
         description: 'Harvest and commit only — skip building and deploying the site'
         type: boolean
@@ -90,7 +88,7 @@ jobs:
           NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
           PUBMED_EMAIL: ${{ secrets.PUBMED_EMAIL }}
         run: |
-          DAYS="${{ inputs.days || '3' }}"
+          DAYS="${{ inputs.days || '8' }}"
           echo "days=$DAYS" >> "$GITHUB_OUTPUT"
           echo "log=${RUNNER_TEMP}/harvest.log" >> "$GITHUB_OUTPUT"
           echo "Harvesting the last $DAYS day(s) of PubMed indexing..."
@@ -107,20 +105,28 @@ jobs:
           python -m evidence_digest.cli harvest --days "$DAYS" 2>&1 | tee "${RUNNER_TEMP}/harvest.log"
           exit "${PIPESTATUS[0]}"
 
-      - name: Commit archive + state
+      - name: Enrich eligible studies in Chinese
+        if: ${{ !cancelled() }}
+        env:
+          PYTHONPATH: pipeline
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_AI_TOKEN: ${{ secrets.CLOUDFLARE_AI_TOKEN }}
+        run: python -m evidence_digest.cli enrich-zh --limit 200
+
+      - name: Commit archive + state + enrichment
         id: commit
         if: ${{ !cancelled() }}
         run: |
           # mkdir -p first: on a very early or total-failure run, one of these
-          # two directories may not exist yet (e.g. every journal erroring means
-          # no archive file was ever written), and `git add` treats a missing
-          # pathspec as fatal and aborts the ENTIRE add — including the other,
-          # existing path — rather than just skipping it.
-          mkdir -p data/archive data/state
+          # any of these directories may not exist yet (e.g. every journal erroring
+          # means no archive file was ever written, or enrichment safely skipped),
+          # and `git add` treats a missing pathspec as fatal and aborts the entire
+          # add rather than staging the paths that do exist.
+          mkdir -p data/archive data/state data/enrichment/zh
 
           git config user.name 'evidence-digest-bot'
           git config user.email 'evidence-digest-bot@users.noreply.github.com'
-          git add data/archive data/state
+          git add data/archive data/state data/enrichment
 
           if git diff --cached --quiet; then
             echo 'Nothing new to commit (0 new studies, or an already-seen window).'

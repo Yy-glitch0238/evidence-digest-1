@@ -15,6 +15,7 @@ on:
       - 'pipeline/**'
       - 'contract/**'
       - 'shared/**'
+      - 'data/enrichment/**'
       - '.github/workflows/pages.yml'
       - '.github/actions/build-site/**'
 
