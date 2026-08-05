@@ -77,7 +77,7 @@ def parse_response(text: str) -> dict[str, str]:
 
 
 def _is_utc_iso_timestamp(value: object) -> bool:
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if not isinstance(value, str) or not value.endswith("Z") or "T" not in value:
         return False
     try:
         dt.datetime.fromisoformat(value[:-1] + "+00:00")
