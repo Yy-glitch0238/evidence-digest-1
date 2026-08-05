@@ -60,6 +60,14 @@ def success_response(summary=VALID_SUMMARY):
     return FakeResponse(json.dumps(envelope, ensure_ascii=False).encode("utf-8"))
 
 
+def structured_success_response(summary=VALID_SUMMARY):
+    envelope = {
+        "success": True,
+        "result": {"response": summary},
+    }
+    return FakeResponse(json.dumps(envelope, ensure_ascii=False).encode("utf-8"))
+
+
 def http_error(code):
     return urllib.error.HTTPError(
         "https://api.cloudflare.com", code, "sensitive server message", {}, io.BytesIO()
@@ -95,6 +103,23 @@ class CloudflareAIClientTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.read_sizes, [1024 * 1024])
+
+    def test_accepts_and_validates_structured_json_response(self):
+        structured_summary = {
+            "objective": "  研究目的  ",
+            "methods": "  研究方法  ",
+            "results": "  主要结果  ",
+            "conclusion": "  结论  ",
+        }
+        opener = FakeOpener([structured_success_response(structured_summary)])
+        client = CloudflareAIClient(
+            "account-123", TOKEN, opener=opener, sleep_fn=self.fail
+        )
+
+        result = client.summarize(STUDY)
+
+        self.assertEqual(result, VALID_SUMMARY)
+        self.assertEqual(len(opener.requests), 1)
 
     def test_retries_retryable_failures_twice_then_succeeds(self):
         retryable_failures = {

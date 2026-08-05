@@ -3,7 +3,7 @@ name: Harvest
 # The heartbeat of the project: pull newly-indexed PubMed records, commit the
 # immutable archive, rebuild the static API + web app, and redeploy. Everything
 # else (the web UI, the email digests) is downstream of this workflow succeeding
-# once a day. See evidence-digest-docs/operations.md for the runbook if this
+# once a week. See evidence-digest-docs/operations.md for the runbook if this
 # workflow goes red.
 
 on:
@@ -147,10 +147,11 @@ jobs:
             # main may well have moved underneath it — a docs commit, a merged PR, a
             # manual dispatch. A bare `git push` would then fail and throw away a
             # completed harvest, and because the seen-store was already updated in
-            # that lost commit, the dropped studies would NOT reappear in tomorrow's
-            # window: they would be silently missing from the archive forever.
-            # Rebasing is always safe here because this job only ever adds new,
-            # date-named files under data/archive and data/state.
+            # that lost commit, the dropped studies would NOT reappear in the next
+            # scheduled window: they would be silently missing from the archive.
+            # Rebasing is safe here because this job writes immutable date-named
+            # archive files, deterministic harvest state, and dated enrichment
+            # caches under data/enrichment/zh.
             pushed=false
             for attempt in 1 2 3; do
               if git push; then

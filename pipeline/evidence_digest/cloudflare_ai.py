@@ -102,6 +102,11 @@ class CloudflareAIClient:
         if not isinstance(envelope, dict) or envelope.get("success") is not True:
             raise _EnvelopeError("unsuccessful response envelope")
         result = envelope.get("result")
-        if not isinstance(result, dict) or not isinstance(result.get("response"), str):
+        if not isinstance(result, dict):
             raise _EnvelopeError("missing model response")
-        return parse_response(result["response"])
+        model_response = result.get("response")
+        if isinstance(model_response, dict):
+            model_response = json.dumps(model_response, ensure_ascii=False)
+        elif not isinstance(model_response, str):
+            raise _EnvelopeError("missing model response")
+        return parse_response(model_response)

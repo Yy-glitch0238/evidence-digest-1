@@ -2,7 +2,7 @@ name: Pages
 
 # Rebuilds the static API from the EXISTING committed archive and redeploys the
 # site, without harvesting. This is what lets a UI fix or a taxonomy edit ship in
-# about two minutes instead of waiting for tomorrow's cron — harvest.yml already
+# about two minutes instead of waiting for the next scheduled run — harvest.yml already
 # does a full build + deploy after every harvest, so this workflow exists purely
 # for the "I changed the site, not the data" path.
 
@@ -24,7 +24,7 @@ permissions:
   pages: write
   id-token: write
 
-# Shares a group with harvest.yml: a push-triggered rebuild and the daily harvest
+# Shares a group with harvest.yml: a push-triggered rebuild and the weekly harvest
 # both end in "upload + deploy to Pages", and only one deploy should be in flight
 # at a time. cancel-in-progress: false for the same reason as harvest.yml — queue
 # rather than kill a deploy that's already running.
