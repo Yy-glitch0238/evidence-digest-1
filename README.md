@@ -53,6 +53,48 @@ server to run), see the five-step path in
 To switch on email digests, run `./scripts/setup-cloudflare.sh` once you have a
 free Cloudflare account and a free Brevo account.
 
+## Chinese selected-journals feed (for fork owners)
+
+This optional Atom feed provides Chinese summaries of eligible research articles
+from the selected journals. Subscribe in Inoreader with this exact URL:
+
+<https://Yy-glitch0238.github.io/evidence-digest-1/feeds/selected-journals-zh.xml>
+
+Each card title is `【journal abbreviation】English article title`. Its Chinese
+body has four sections — `研究目的`, `研究方法`, `主要结果`, and `结论` — followed by
+the PubMed link.
+Only selected-journal research articles with an abstract are included. News,
+editorials, comments, letters, corrections, retractions, announcements, and
+other non-research items are excluded.
+
+### One-time setup
+
+The Chinese summaries use Cloudflare Workers AI model
+`@cf/qwen/qwen3-30b-a3b-fp8`. In your GitHub fork, add these two repository
+secrets (use your own Cloudflare values; never put them in this README or a
+commit):
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_AI_TOKEN`
+
+In GitHub, open `Settings → Secrets and variables → Actions → New repository secret`
+and add each name and its value. The normal Harvest schedule runs every Sunday at
+23:00 Beijing time (Sunday 15:00 UTC). If the workflow reaches `main` before then,
+the first scheduled run is 2026-08-09 at 23:00 Beijing time.
+
+### Refreshing and recovery
+
+To run it now, use `Actions → Harvest → Run workflow`; leave the lookback at the
+normal value of 8 days. The first run may create fewer than 51 Chinese entries,
+because non-research items and records without abstracts are removed.
+
+If an AI request fails, that article is left out temporarily and is retried on a
+later run. If either Cloudflare secret is missing, the workflow skips new Chinese
+AI work without breaking the English feeds or Chinese entries already cached.
+To roll back, simply resubscribe in Inoreader to the existing English feed:
+
+<https://Yy-glitch0238.github.io/evidence-digest-1/feeds/selected-journals-all.xml>
+
 ## What it costs to run
 
 | Piece | Cost |
