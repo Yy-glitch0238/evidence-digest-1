@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -19,11 +20,13 @@ from dataclasses import dataclass
 from evidence_digest import build as build_mod
 from evidence_digest import classify as classify_mod
 from evidence_digest import config
+from evidence_digest import enrich as enrich_mod
 from evidence_digest import parse as parse_mod
 from evidence_digest import pubmed
 from evidence_digest import score as score_mod
 from evidence_digest import store
 from evidence_digest import takeaway as takeaway_mod
+from evidence_digest.cloudflare_ai import CloudflareAIClient
 from evidence_digest.config import ConfigError, Journal
 
 DEFAULT_MAX_PER_JOURNAL = 500
@@ -351,6 +354,27 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_enrich_zh(args: argparse.Namespace) -> int:
+    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    api_token = os.environ.get("CLOUDFLARE_AI_TOKEN")
+    if not account_id or not api_token:
+        print(
+            "WARNING: Chinese enrichment skipped; "
+            "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AI_TOKEN are required."
+        )
+        return 0
+
+    client = CloudflareAIClient(account_id, api_token)
+    result = enrich_mod.run(
+        window_days=args.window_days, limit=args.limit, client=client
+    )
+    print(
+        f"ZH ENRICHMENT: eligible={result.eligible} cached={result.cached} "
+        f"generated={result.generated} failed={result.failed} excluded={result.excluded}"
+    )
+    return 0
+
+
 def cmd_reclassify(args: argparse.Namespace) -> int:
     """Re-run classification, evidence detection, scoring and takeaway extraction
     over every archived record, in place, using the CURRENT config.
@@ -509,6 +533,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--window-days", type=int, default=None, help="default: scoring.json limits.servedWindowDays")
     p.add_argument("--site-url", default="", help="base URL used for feed self/alternate links")
     p.set_defaults(func=cmd_build)
+
+    enrich_zh = sub.add_parser(
+        "enrich-zh", help="Generate cached Chinese summaries"
+    )
+    enrich_zh.add_argument("--window-days", type=int, default=120)
+    enrich_zh.add_argument("--limit", type=int, default=200)
+    enrich_zh.set_defaults(func=cmd_enrich_zh)
 
     p = sub.add_parser(
         "reclassify",
