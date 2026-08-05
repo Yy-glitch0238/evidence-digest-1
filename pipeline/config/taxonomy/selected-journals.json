@@ -1,6 +1,6 @@
 {
   "slug": "selected-journals",
-  "order": 5,
+  "order": 999,
   "name": "Selected journals",
   "icon": "📚",
   "blurb": "New papers from selected journals.",
