@@ -1,0 +1,21 @@
+{
+  "slug": "selected-journals",
+  "order": 5,
+  "name": "Selected journals",
+  "icon": "📚",
+  "blurb": "New papers from selected journals.",
+  "topics": [
+    {
+      "slug": "selected-journals-all",
+      "name": "All papers from selected journals",
+      "blurb": "Papers from Viruses, Nature Communications, and Nature Immunology.",
+      "catchAll": true,
+      "rules": {
+        "mesh": [],
+        "phrases": [],
+        "acronyms": [],
+        "not": []
+      }
+    }
+  ]
+}
