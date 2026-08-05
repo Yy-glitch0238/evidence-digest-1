@@ -119,6 +119,7 @@ class CacheRecordTests(unittest.TestCase):
                 self.assertFalse(validate_cache_record(invalid))
         self.assertFalse(validate_cache_record({**record, "generatedAt": "2026-08-05T12:34:56+00:00"}))
         self.assertFalse(validate_cache_record({**record, "generatedAt": "2026-08-05Z"}))
+        self.assertFalse(validate_cache_record({**record, "pmid": "not-a-pmid"}))
 
     def test_matches_only_current_source_model_and_prompt_version(self):
         record = self._record()

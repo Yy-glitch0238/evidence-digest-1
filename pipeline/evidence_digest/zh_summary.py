@@ -95,6 +95,8 @@ def validate_cache_record(record: dict) -> bool:
         return False
     if not all(isinstance(record[key], str) and record[key].strip() for key in ("pmid", "sourceHash", "model", "promptVersion")):
         return False
+    if not record["pmid"].isdigit():
+        return False
     if not _is_utc_iso_timestamp(record["generatedAt"]):
         return False
     try:

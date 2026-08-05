@@ -107,6 +107,15 @@ class EnrichmentStoreTests(unittest.TestCase):
         self.assertEqual(enrichment_store.write_day(dt.date(2026, 8, 5), [_record("1"), invalid], self.paths), 1)
         self.assertEqual(enrichment_store.read_latest(self.paths), {"1": _record("1")})
 
+    def test_write_day_skips_a_nonnumeric_pmid_without_blocking_valid_records(self) -> None:
+        self.assertEqual(
+            enrichment_store.write_day(
+                dt.date(2026, 8, 5), [_record("1"), _record("not-a-pmid")], self.paths
+            ),
+            1,
+        )
+        self.assertEqual(enrichment_store.read_latest(self.paths), {"1": _record("1")})
+
 
 if __name__ == "__main__":
     unittest.main()
