@@ -18,8 +18,9 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from unittest import mock
 
-from evidence_digest import build
+from evidence_digest import build, enrichment_store, zh_summary
 from evidence_digest.config import PATHS, Paths, load_journals, load_taxonomy
 
 
@@ -65,6 +66,20 @@ def _full_study(pmid: str, entry_date: str, score: int, topic_slug: str, special
         "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/", "doiUrl": None,
         "pmcid": None, "openAccess": False,
         "mesh": ["Some Descriptor"], "keywords": ["kw"], "trialIds": [], "hasAbstract": True,
+    }
+
+
+def _valid_zh_summary(study: dict) -> dict:
+    return {
+        "pmid": study["pmid"],
+        "sourceHash": zh_summary.source_hash(study),
+        "model": zh_summary.MODEL_ID,
+        "promptVersion": zh_summary.PROMPT_VERSION,
+        "generatedAt": "2026-07-24T12:34:56Z",
+        "objective": "评估研究目的。",
+        "methods": "分析研究方法。",
+        "results": "报告主要结果。",
+        "conclusion": "总结研究结论。",
     }
 
 
@@ -198,6 +213,138 @@ class EmptyArchiveBuildTests(unittest.TestCase):
             manifest = json.loads((paths.api_dir / "manifest.json").read_text())
             self.assertEqual(manifest["days"], [])
             self.assertEqual(manifest["latestDay"], "2026-07-24")
+
+
+class ChineseFeedBuildTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.taxonomy, cls.specialty, cls.topic, _, cls.journal = _pick_topic_and_journal()
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.paths = _scratch_data_paths(Path(self._tmp.name))
+        self.today = dt.date(2026, 7, 24)
+
+        eligible = [
+            _full_study(
+                str(20000000 + index),
+                "2026-07-24" if index <= 100 else "2026-07-23",
+                index,
+                self.topic.slug,
+                self.specialty.slug,
+                self.journal,
+            )
+            for index in range(202)
+        ]
+        self.eligible = eligible
+
+        excluded = _full_study(
+            "90000001", "2026-07-24", 999, self.topic.slug, self.specialty.slug, self.journal
+        )
+        excluded["pubTypes"] = ["Editorial"]
+        removed_journal = _full_study(
+            "90000002", "2026-07-24", 999, self.topic.slug, self.specialty.slug, self.journal
+        )
+        removed_journal["journal"] = {
+            "name": "Removed Journal", "ta": "Removed J", "tier": 1
+        }
+        no_abstract = _full_study(
+            "90000003", "2026-07-24", 999, self.topic.slug, self.specialty.slug, self.journal
+        )
+        no_abstract["hasAbstract"] = False
+        no_abstract["abstract"] = ""
+        stale = _full_study(
+            "90000004", "2026-07-24", 999, self.topic.slug, self.specialty.slug, self.journal
+        )
+        missing = _full_study(
+            "90000005", "2026-07-24", 999, self.topic.slug, self.specialty.slug, self.journal
+        )
+        self.ineligible = [excluded, removed_journal, no_abstract, stale, missing]
+        self.records = [*eligible, dict(eligible[0]), *self.ineligible]
+
+        summaries = [_valid_zh_summary(study) for study in eligible]
+        summaries.extend(_valid_zh_summary(study) for study in self.ineligible[:3])
+        stale_summary = _valid_zh_summary(stale)
+        stale_summary["sourceHash"] = "0" * 64
+        summaries.append(stale_summary)
+        enrichment_store.write_day(self.today, summaries, self.paths)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _build(self) -> dict:
+        with mock.patch("evidence_digest.build._now_iso", return_value="2026-07-24T13:00:00Z"):
+            return build.build(
+                window_days=30,
+                site_url="https://example.org",
+                paths=self.paths,
+                today=self.today,
+                records=self.records,
+            )
+
+    def _zh_entry_pmids(self) -> list[str]:
+        path = self.paths.feeds_dir / "selected-journals-zh.xml"
+        root = ET.parse(path).getroot()
+        ns = {"a": "http://www.w3.org/2005/Atom"}
+        return [
+            entry.find("a:id", ns).text.removeprefix("urn:evidence-digest:zh:")
+            for entry in root.findall("a:entry", ns)
+        ]
+
+    def test_build_writes_only_eligible_current_summaries(self) -> None:
+        result = self._build()
+        path = self.paths.feeds_dir / "selected-journals-zh.xml"
+        self.assertTrue(path.exists())
+        pmids = self._zh_entry_pmids()
+        self.assertIn("20000000", pmids)
+        for study in self.ineligible:
+            self.assertNotIn(study["pmid"], pmids)
+        self.assertEqual(result["feeds"], len(self.taxonomy.all_topics) + 2)
+
+    def test_chinese_feed_uses_build_sort_deduplicates_and_caps_at_200(self) -> None:
+        self._build()
+        pmids = self._zh_entry_pmids()
+        expected_indices = [*range(100, -1, -1), *range(201, 102, -1)]
+        self.assertEqual(pmids, [str(20000000 + index) for index in expected_indices])
+        self.assertEqual(len(pmids), 200)
+        self.assertEqual(len(pmids), len(set(pmids)))
+
+    def test_chinese_feed_rebuild_is_byte_identical(self) -> None:
+        self._build()
+        path = self.paths.feeds_dir / "selected-journals-zh.xml"
+        first = path.read_bytes()
+        self._build()
+        self.assertEqual(path.read_bytes(), first)
+
+    def test_enrichment_cache_does_not_change_existing_english_feed_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = _scratch_data_paths(Path(tmp))
+            records = self.eligible[:3]
+            with mock.patch("evidence_digest.build._now_iso", return_value="2026-07-24T13:00:00Z"):
+                build.build(
+                    window_days=30, site_url="https://example.org", paths=paths,
+                    today=self.today, records=records,
+                )
+            before = {
+                path.name: path.read_bytes()
+                for path in paths.feeds_dir.glob("*.xml")
+                if path.name != "selected-journals-zh.xml"
+            }
+
+            enrichment_store.write_day(
+                self.today, [_valid_zh_summary(study) for study in records], paths
+            )
+            with mock.patch("evidence_digest.build._now_iso", return_value="2026-07-24T13:00:00Z"):
+                build.build(
+                    window_days=30, site_url="https://example.org", paths=paths,
+                    today=self.today, records=records,
+                )
+            after = {
+                path.name: path.read_bytes()
+                for path in paths.feeds_dir.glob("*.xml")
+                if path.name != "selected-journals-zh.xml"
+            }
+            self.assertEqual(after, before)
 
 
 if __name__ == "__main__":

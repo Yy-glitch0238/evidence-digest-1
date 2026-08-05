@@ -47,6 +47,17 @@ def _card(pmid: str, entry_date: str = "2026-07-24") -> dict:
     }
 
 
+def _zh_summary(pmid: str) -> dict:
+    return {
+        "pmid": pmid,
+        "generatedAt": "2026-07-24T11:22:33Z",
+        "objective": "比较 A&B 与 <标准治疗>。",
+        "methods": "开展随机试验。",
+        "results": "A&B 改善结局。",
+        "conclusion": "值得进一步研究。",
+    }
+
+
 class WriteFeedTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -145,6 +156,113 @@ class WriteFeedTests(unittest.TestCase):
         root = ET.parse(path).getroot()  # would raise ParseError if unescaped
         entry_title = root.find("a:entry/a:title", NS).text
         self.assertEqual(entry_title, 'Risk & benefit of <drug> "X" in >50s')
+
+    def test_existing_english_feed_bytes_are_unchanged(self) -> None:
+        path = self.dir / "f.xml"
+        card = _card("1")
+        card.update({
+            "title": 'Risk & benefit of <drug> "X" in >50s',
+            "takeaway": "Takeaway & context <now>.",
+            "journal": {"name": "Blood & Marrow", "ta": "Blood", "tier": 1},
+            "url": "https://pubmed.ncbi.nlm.nih.gov/1/?a=1&b=2",
+        })
+        feeds.write_feed(
+            path, title="Evidence Digest — Heme & AML", feed_id="urn:test:english",
+            site_url="https://example.org", self_path="/feeds/f.xml",
+            alternate_path="/topics/heme-aml", studies=[card],
+            generated_at="2026-07-24T12:00:00Z",
+        )
+        expected = """<?xml version='1.0' encoding='utf-8'?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Evidence Digest — Heme &amp; AML</title>
+  <id>urn:test:english</id>
+  <updated>2026-07-24T12:00:00Z</updated>
+  <link rel="self" href="https://example.org/feeds/f.xml" />
+  <link rel="alternate" href="https://example.org/topics/heme-aml" />
+  <author>
+    <name>Evidence Digest</name>
+  </author>
+  <entry>
+    <title>Risk &amp; benefit of &lt;drug&gt; "X" in &gt;50s</title>
+    <id>urn:pmid:1</id>
+    <updated>2026-07-24T00:00:00Z</updated>
+    <published>2026-07-24T00:00:00Z</published>
+    <link rel="alternate" href="https://pubmed.ncbi.nlm.nih.gov/1/?a=1&amp;b=2" />
+    <summary>Takeaway &amp; context &lt;now&gt;.</summary>
+    <author>
+      <name>Smith J, et al</name>
+    </author>
+    <category term="heme-aml" />
+  </entry>
+</feed>""".encode("utf-8")
+        self.assertEqual(path.read_bytes(), expected)
+
+
+class WriteChineseFeedTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.path = Path(self._tmp.name) / "selected-journals-zh.xml"
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_serializes_chinese_summary_as_atom_text_and_escaped_html(self) -> None:
+        study = _card("12345678")
+        study.update({
+            "title": "English & escaped title",
+            "journal": {"name": "Nature Immunology", "ta": "Nat Immunol", "tier": 1},
+            "topics": ["immune-autoimmune", "immune-other"],
+            "url": "https://pubmed.ncbi.nlm.nih.gov/12345678/?a=1&b=2",
+        })
+        feeds.write_chinese_feed(
+            self.path,
+            studies=[study],
+            summaries={"12345678": _zh_summary("12345678")},
+            site_url="https://example.org",
+            generated_at="2026-07-24T12:00:00Z",
+        )
+
+        root = ET.parse(self.path).getroot()
+        self.assertEqual(root.find("a:title", NS).text, "Evidence Digest — 中文精选")
+        entry = root.find("a:entry", NS)
+        self.assertEqual(entry.find("a:title", NS).text, "【Nat Immunol】English & escaped title")
+        self.assertEqual(entry.find("a:id", NS).text, "urn:evidence-digest:zh:12345678")
+        self.assertEqual(entry.find("a:updated", NS).text, "2026-07-24T11:22:33Z")
+        self.assertEqual(entry.find("a:published", NS).text, "2026-07-24T00:00:00Z")
+
+        plain = entry.find("a:summary", NS).text
+        for label in ("研究目的：", "研究方法：", "主要结果：", "结论："):
+            self.assertIn(label, plain)
+        self.assertIn("比较 A&B 与 <标准治疗>。", plain)
+        self.assertIn(study["url"], plain)
+
+        content = entry.find("a:content", NS)
+        self.assertEqual(content.get("type"), "html")
+        for label in ("研究目的：", "研究方法：", "主要结果：", "结论："):
+            self.assertIn(label, content.text)
+        self.assertIn("比较 A&amp;B 与 &lt;标准治疗&gt;。", content.text)
+        self.assertIn(
+            '<a href="https://pubmed.ncbi.nlm.nih.gov/12345678/?a=1&amp;b=2">PubMed</a>',
+            content.text,
+        )
+        categories = [category.get("term") for category in entry.findall("a:category", NS)]
+        self.assertEqual(categories, ["immune-autoimmune", "immune-other"])
+
+    def test_skips_missing_summaries_and_duplicate_pmids(self) -> None:
+        first = _card("12345678")
+        duplicate = dict(first)
+        missing = _card("87654321")
+        feeds.write_chinese_feed(
+            self.path,
+            studies=[first, duplicate, missing],
+            summaries={"12345678": _zh_summary("12345678")},
+            site_url="",
+            generated_at="2026-07-24T12:00:00Z",
+        )
+        root = ET.parse(self.path).getroot()
+        entries = root.findall("a:entry", NS)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].find("a:id", NS).text, "urn:evidence-digest:zh:12345678")
 
 
 class WriteAllFeedsTests(unittest.TestCase):

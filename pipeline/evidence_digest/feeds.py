@@ -10,6 +10,7 @@ different score after a rebuild.
 from __future__ import annotations
 
 import datetime as dt
+import html
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -116,6 +117,96 @@ def write_feed(
         studies=studies,
         generated_at=generated_at,
     )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tree.write(str(path), encoding="utf-8", xml_declaration=True)
+
+
+def write_chinese_feed(
+    path: Path,
+    *,
+    studies: list[dict],
+    summaries: dict[str, dict],
+    site_url: str,
+    generated_at: str,
+) -> None:
+    """Write the filtered Chinese-summary Atom feed in the supplied order."""
+    base = site_url.rstrip("/") if site_url else ""
+    feed = ET.Element(_tag("feed"))
+    _sub_text(feed, "title", "Evidence Digest — 中文精选")
+    _sub_text(feed, "id", "urn:evidence-digest:zh")
+    _sub_text(feed, "updated", generated_at)
+
+    self_link = ET.SubElement(feed, _tag("link"))
+    self_link.set("rel", "self")
+    self_link.set("href", f"{base}/feeds/selected-journals-zh.xml")
+
+    if base:
+        alternate_link = ET.SubElement(feed, _tag("link"))
+        alternate_link.set("rel", "alternate")
+        alternate_link.set("href", base)
+
+    author = ET.SubElement(feed, _tag("author"))
+    _sub_text(author, "name", "Evidence Digest")
+
+    seen_pmids: set[str] = set()
+    fields = (
+        ("研究目的：", "objective"),
+        ("研究方法：", "methods"),
+        ("主要结果：", "results"),
+        ("结论：", "conclusion"),
+    )
+    for study in studies:
+        pmid = str(study.get("pmid") or "")
+        summary = summaries.get(pmid)
+        if not summary or pmid in seen_pmids:
+            continue
+        seen_pmids.add(pmid)
+
+        entry = ET.SubElement(feed, _tag("entry"))
+        journal_ta = str((study.get("journal") or {}).get("ta") or "Unknown journal")
+        entry_title = f"【{journal_ta}】{study['title']}"
+        _sub_text(entry, "title", entry_title)
+        _sub_text(entry, "id", f"urn:evidence-digest:zh:{pmid}")
+        _sub_text(entry, "updated", str(summary["generatedAt"]))
+        _sub_text(entry, "published", _rfc3339_from_date(study["entryDate"]))
+
+        url = str(study["url"])
+        link = ET.SubElement(entry, _tag("link"))
+        link.set("rel", "alternate")
+        link.set("href", url)
+
+        plain_lines = [f"{label}{str(summary[key])}" for label, key in fields]
+        plain_lines.append(f"PubMed：{url}")
+        _sub_text(entry, "summary", "\n".join(plain_lines))
+
+        escaped_title = html.escape(entry_title, quote=True)
+        escaped_url = html.escape(url, quote=True)
+        html_parts = [f"<h2>{escaped_title}</h2>"]
+        html_parts.extend(
+            f"<p><strong>{label}</strong>{html.escape(str(summary[key]), quote=True)}</p>"
+            for label, key in fields
+        )
+        html_parts.append(f'<p><a href="{escaped_url}">PubMed</a></p>')
+        content = ET.SubElement(entry, _tag("content"))
+        content.set("type", "html")
+        content.text = "".join(html_parts)
+
+        entry_author = ET.SubElement(entry, _tag("author"))
+        _sub_text(
+            entry_author,
+            "name",
+            str(study.get("authorLine") or (study.get("journal") or {}).get("name") or journal_ta),
+        )
+
+        for topic_slug in study.get("topics", []):
+            category = ET.SubElement(entry, _tag("category"))
+            category.set("term", str(topic_slug))
+
+    tree = ET.ElementTree(feed)
+    try:
+        ET.indent(tree, space="  ")
+    except AttributeError:
+        pass
     path.parent.mkdir(parents=True, exist_ok=True)
     tree.write(str(path), encoding="utf-8", xml_declaration=True)
 

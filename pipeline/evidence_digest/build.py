@@ -20,8 +20,9 @@ import urllib.parse
 from collections import defaultdict
 from pathlib import Path
 
+from evidence_digest import eligibility, enrichment_store, zh_summary
 from evidence_digest.config import PATHS, Journal, Paths, ScoringConfig, Taxonomy, load_all
-from evidence_digest.feeds import write_all_feeds
+from evidence_digest.feeds import write_all_feeds, write_chinese_feed
 
 # Bumped only when the Study shape itself changes in a breaking way. Also used
 # as api/taxonomy.json's `version`, since that file's shape tracks the same
@@ -135,11 +136,13 @@ def build(
     paths: Paths = PATHS,
     today: dt.date | None = None,
     records: list[dict] | None = None,
+    zh_summaries: dict[str, dict] | None = None,
 ) -> dict:
     """Rebuild the whole data/api + data/feeds tree from the archive.
 
     `records` lets tests (and nothing else) inject a synthetic archive result
-    instead of reading data/archive from disk.
+    instead of reading data/archive from disk. `zh_summaries` optionally injects
+    the enrichment cache while retaining the normal on-disk behavior by default.
     """
     from evidence_digest import store  # local import: keeps build.py testable without touching disk unless asked
 
@@ -277,6 +280,35 @@ def build(
         feeds_dir=paths.feeds_dir,
         generated_at=generated_at,
     )
+
+    summaries = enrichment_store.read_latest(paths) if zh_summaries is None else zh_summaries
+    allowed_journal_tas = {journal.ta for journal in journals_cfg.journals}
+    zh_candidates = [
+        study
+        for study in all_records
+        if eligibility.assess(study, allowed_journal_tas).eligible
+        and study["pmid"] in summaries
+        and zh_summary.cache_matches(study, summaries[study["pmid"]])
+    ]
+    zh_candidates.sort(key=_sort_key)
+    zh_records: list[dict] = []
+    seen_zh_pmids: set[str] = set()
+    for study in zh_candidates:
+        if study["pmid"] in seen_zh_pmids:
+            continue
+        seen_zh_pmids.add(study["pmid"])
+        zh_records.append(study)
+        if len(zh_records) == 200:
+            break
+
+    write_chinese_feed(
+        paths.feeds_dir / "selected-journals-zh.xml",
+        studies=zh_records,
+        summaries=summaries,
+        site_url=site_url,
+        generated_at=generated_at,
+    )
+    feed_count += 1
 
     return {
         "totalStudies": len(all_records),
