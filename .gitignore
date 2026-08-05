@@ -45,3 +45,4 @@ worker/.wrangler/
 # Local scratch
 tmp/
 scratch/
+.worktrees/
