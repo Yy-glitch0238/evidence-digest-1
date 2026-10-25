@@ -208,167 +208,12 @@
   },
   {
     "command": "harvest",
-    "errors": [],
+    "errorCount": 0,
+    "journalCount": 31,
     "newCount": 282,
-    "perJournal": {
-      "Annu Rev Immunol": {
-        "error": null,
-        "found": 0,
-        "new": 0
-      },
-      "Cancer Cell": {
-        "error": null,
-        "found": 1,
-        "new": 1
-      },
-      "Cancer Res": {
-        "error": null,
-        "found": 3,
-        "new": 3
-      },
-      "Cell": {
-        "error": null,
-        "found": 6,
-        "new": 6
-      },
-      "Cell Host Microbe": {
-        "error": null,
-        "found": 1,
-        "new": 1
-      },
-      "Clin Cancer Res": {
-        "error": null,
-        "found": 4,
-        "new": 4
-      },
-      "Front Cell Infect Microbiol": {
-        "error": null,
-        "found": 63,
-        "new": 51
-      },
-      "Front Microbiol": {
-        "error": null,
-        "found": 90,
-        "new": 75
-      },
-      "Hum Vaccin Immunother": {
-        "error": null,
-        "found": 10,
-        "new": 10
-      },
-      "Immunity": {
-        "error": null,
-        "found": 6,
-        "new": 6
-      },
-      "J Clin Oncol": {
-        "error": null,
-        "found": 2,
-        "new": 2
-      },
-      "J Virol": {
-        "error": null,
-        "found": 14,
-        "new": 14
-      },
-      "Lancet": {
-        "error": null,
-        "found": 2,
-        "new": 2
-      },
-      "Lancet Oncol": {
-        "error": null,
-        "found": 2,
-        "new": 2
-      },
-      "N Engl J Med": {
-        "error": null,
-        "found": 2,
-        "new": 2
-      },
-      "NPJ Vaccines": {
-        "error": null,
-        "found": 1,
-        "new": 1
-      },
-      "Nat Commun": {
-        "error": null,
-        "found": 31,
-        "new": 31
-      },
-      "Nat Immunol": {
-        "error": null,
-        "found": 7,
-        "new": 4
-      },
-      "Nat Med": {
-        "error": null,
-        "found": 5,
-        "new": 5
-      },
-      "Nat Rev Cancer": {
-        "error": null,
-        "found": 0,
-        "new": 0
-      },
-      "Nat Rev Immunol": {
-        "error": null,
-        "found": 5,
-        "new": 4
-      },
-      "Nat Rev Microbiol": {
-        "error": null,
-        "found": 6,
-        "new": 6
-      },
-      "Nat Struct Mol Biol": {
-        "error": null,
-        "found": 0,
-        "new": 0
-      },
-      "Nature": {
-        "error": null,
-        "found": 9,
-        "new": 8
-      },
-      "Sci Immunol": {
-        "error": null,
-        "found": 4,
-        "new": 4
-      },
-      "Science": {
-        "error": null,
-        "found": 5,
-        "new": 5
-      },
-      "Vaccine": {
-        "error": null,
-        "found": 26,
-        "new": 24
-      },
-      "Virol Sin": {
-        "error": null,
-        "found": 2,
-        "new": 2
-      },
-      "Virology": {
-        "error": null,
-        "found": 3,
-        "new": 3
-      },
-      "Viruses": {
-        "error": null,
-        "found": 123,
-        "new": 0
-      },
-      "mBio": {
-        "error": null,
-        "found": 6,
-        "new": 6
-      }
-    },
     "timestamp": "2026-10-04T18:35:53Z",
-    "windowDays": 8
+    "windowDays": 8,
+    "zeroHitJournalCount": 3
   },
   {
     "command": "harvest",
@@ -696,6 +541,170 @@
       }
     },
     "timestamp": "2026-10-18T17:59:04Z",
+    "windowDays": 8
+  },
+  {
+    "command": "harvest",
+    "errors": [],
+    "newCount": 264,
+    "perJournal": {
+      "Annu Rev Immunol": {
+        "error": null,
+        "found": 0,
+        "new": 0
+      },
+      "Cancer Cell": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Cancer Res": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Cell": {
+        "error": null,
+        "found": 4,
+        "new": 4
+      },
+      "Cell Host Microbe": {
+        "error": null,
+        "found": 4,
+        "new": 4
+      },
+      "Clin Cancer Res": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Front Cell Infect Microbiol": {
+        "error": null,
+        "found": 66,
+        "new": 37
+      },
+      "Front Microbiol": {
+        "error": null,
+        "found": 112,
+        "new": 89
+      },
+      "Hum Vaccin Immunother": {
+        "error": null,
+        "found": 5,
+        "new": 5
+      },
+      "Immunity": {
+        "error": null,
+        "found": 1,
+        "new": 1
+      },
+      "J Clin Oncol": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "J Virol": {
+        "error": null,
+        "found": 9,
+        "new": 9
+      },
+      "Lancet": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Lancet Oncol": {
+        "error": null,
+        "found": 1,
+        "new": 1
+      },
+      "N Engl J Med": {
+        "error": null,
+        "found": 3,
+        "new": 3
+      },
+      "NPJ Vaccines": {
+        "error": null,
+        "found": 1,
+        "new": 1
+      },
+      "Nat Commun": {
+        "error": null,
+        "found": 42,
+        "new": 42
+      },
+      "Nat Immunol": {
+        "error": null,
+        "found": 10,
+        "new": 10
+      },
+      "Nat Med": {
+        "error": null,
+        "found": 6,
+        "new": 5
+      },
+      "Nat Rev Cancer": {
+        "error": null,
+        "found": 0,
+        "new": 0
+      },
+      "Nat Rev Immunol": {
+        "error": null,
+        "found": 0,
+        "new": 0
+      },
+      "Nat Rev Microbiol": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Nat Struct Mol Biol": {
+        "error": null,
+        "found": 1,
+        "new": 1
+      },
+      "Nature": {
+        "error": null,
+        "found": 4,
+        "new": 4
+      },
+      "Sci Immunol": {
+        "error": null,
+        "found": 2,
+        "new": 2
+      },
+      "Science": {
+        "error": null,
+        "found": 1,
+        "new": 1
+      },
+      "Vaccine": {
+        "error": null,
+        "found": 14,
+        "new": 12
+      },
+      "Virol Sin": {
+        "error": null,
+        "found": 0,
+        "new": 0
+      },
+      "Virology": {
+        "error": null,
+        "found": 7,
+        "new": 7
+      },
+      "Viruses": {
+        "error": null,
+        "found": 0,
+        "new": 0
+      },
+      "mBio": {
+        "error": null,
+        "found": 14,
+        "new": 14
+      }
+    },
+    "timestamp": "2026-10-25T18:19:51Z",
     "windowDays": 8
   }
 ]
