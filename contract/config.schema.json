@@ -16,6 +16,11 @@
           "type": "string",
           "description": "PubMed query fragment applied to journals with scope 'topic'. Used for broad multidisciplinary journals (Nature, Science, PNAS) where only clinically relevant papers should enter the digest."
         },
+        "virusFilter": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PubMed query fragment applied to journals with scope 'virus'. Required when any journal has that scope; keeps virus, viral coinfection, and bacteriophage studies in broad microbiology journals."
+        },
         "journals": {
           "type": "array",
           "minItems": 1,
@@ -44,8 +49,8 @@
               },
               "scope": {
                 "type": "string",
-                "enum": ["all", "topic"],
-                "description": "'all' takes every newly indexed paper from the journal. 'topic' additionally requires topicFilter to match, for broad journals that publish far outside medicine."
+                "enum": ["all", "topic", "virus"],
+                "description": "'all' takes every newly indexed paper from the journal. 'topic' additionally requires topicFilter to match. 'virus' requires virusFilter to match, for broad microbiology journals."
               },
               "note": {
                 "type": "string",

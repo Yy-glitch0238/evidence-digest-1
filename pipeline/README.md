@@ -98,6 +98,11 @@ titles and ISSNs both drift. Then run `validate` (offline) and `check --days
 120` (network) — a zero-hit journal or a query translation missing
 `[Journal]` almost always means a wrong `ta`.
 
+Set `scope` to `all` for every article, `topic` for the top-level `topicFilter`,
+or `virus` for the top-level `virusFilter`. The virus-focused option is for
+broad microbiology journals; it retains virus–bacteria coinfection and
+bacteriophage studies without globally excluding bacterial terms.
+
 ## Adding a topic
 
 Add an entry to the relevant `pipeline/config/taxonomy/<specialty>.json`

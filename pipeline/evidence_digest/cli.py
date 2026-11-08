@@ -97,10 +97,14 @@ def _assemble_study(
     }
 
 
-def _build_term(journal: Journal, topic_filter: str) -> str:
+def _build_term(journal: Journal, topic_filter: str, virus_filter: str | None = None) -> str:
     clause = f'"{journal.ta}"[ta]'
     if journal.scope == "topic":
         clause = f"({clause}) AND {topic_filter}"
+    elif journal.scope == "virus":
+        if not virus_filter:
+            raise ConfigError("scope 'virus' requires virusFilter")
+        clause = f"({clause}) AND {virus_filter}"
     return clause
 
 
@@ -144,7 +148,7 @@ def _run_harvest(
     candidate_journal: dict[str, Journal] = {}
     stats: list[JournalStat] = []
     for journal in journals_to_query:
-        term = _build_term(journal, journals_cfg.topic_filter)
+        term = _build_term(journal, journals_cfg.topic_filter, journals_cfg.virus_filter)
         try:
             ids, count, _translation = esearch_fn(term, max_per_journal)
         except pubmed.PubMedError as exc:
@@ -444,7 +448,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     print(f"Journal resolution check over {args.days}d window (datetype=edat):\n")
     problems: list[str] = []
     for journal in journals_cfg.journals:
-        term = _build_term(journal, journals_cfg.topic_filter)
+        term = _build_term(journal, journals_cfg.topic_filter, journals_cfg.virus_filter)
         try:
             _ids, count, translation = pubmed.esearch(term, reldate=args.days, retmax=1)
         except pubmed.PubMedError as exc:

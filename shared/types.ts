@@ -171,7 +171,7 @@ export interface PublicJournal {
   ta: string;
   specialty: string;
   tier: number;
-  scope: 'all' | 'topic';
+  scope: 'all' | 'topic' | 'virus';
   pubmedUrl: string;
 }
 

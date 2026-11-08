@@ -2,6 +2,7 @@
   "version": 1,
   "_comment": "Custom journal registry for selected biomedical evidence.",
   "topicFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR infection*[tiab] OR immun*[tiab] OR structure*[tiab] OR cancer*[tiab] OR antibody*[tiab])",
+  "virusFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR phage*[tiab] OR bacteriophage*[tiab] OR coronavirus*[tiab] OR influenza[tiab] OR HIV[tiab] OR HBV[tiab] OR HCV[tiab] OR HPV[tiab] OR RSV[tiab] OR EBV[tiab] OR CMV[tiab] OR SARS-CoV-2[tiab] OR COVID-19[tiab] OR dengue[tiab] OR zika[tiab] OR ebola[tiab] OR herpes*[tiab] OR cytomegalovirus*[tiab] OR adenovirus*[tiab] OR norovirus*[tiab] OR rotavirus*[tiab] OR enterovirus*[tiab] OR papillomavirus*[tiab] OR \"Viruses\"[mh] OR \"Virus Diseases\"[mh])",
   "journals": [
     {
       "name": "Viruses",
@@ -57,14 +58,14 @@
       "ta": "Front Cell Infect Microbiol",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "topic"
+      "scope": "virus"
     },
     {
       "name": "Frontiers in Microbiology",
       "ta": "Front Microbiol",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "topic"
+      "scope": "virus"
     },
     {
       "name": "Journal of Virology",
@@ -141,21 +142,21 @@
       "ta": "Nat Rev Microbiol",
       "specialty": "selected-journals",
       "tier": 1,
-      "scope": "all"
+      "scope": "virus"
     },
     {
       "name": "Cell Host & Microbe",
       "ta": "Cell Host Microbe",
       "specialty": "selected-journals",
       "tier": 1,
-      "scope": "all"
+      "scope": "virus"
     },
     {
       "name": "mBio",
       "ta": "mBio",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "all"
+      "scope": "virus"
     },
     {
       "name": "Vaccine",
@@ -225,14 +226,14 @@
       "ta": "PLoS Pathog",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "all"
+      "scope": "virus"
     },
     {
       "name": "Nature Microbiology",
       "ta": "Nat Microbiol",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "topic"
+      "scope": "virus"
     },
     {
       "name": "Reviews in Medical Virology",

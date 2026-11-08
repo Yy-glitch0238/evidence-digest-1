@@ -325,6 +325,7 @@ class JournalsConfig:
     version: int
     topic_filter: str
     journals: tuple[Journal, ...]
+    virus_filter: str | None = None
 
 
 def load_journals(paths: Paths = PATHS) -> JournalsConfig:
@@ -335,6 +336,10 @@ def load_journals(paths: Paths = PATHS) -> JournalsConfig:
     data = _load_json(paths.journals_path)
     where = str(paths.journals_path)
     _require_keys(data, ("version", "journals", "topicFilter"), where)
+
+    virus_filter = data.get("virusFilter")
+    if virus_filter is not None and (not isinstance(virus_filter, str) or not virus_filter.strip()):
+        raise ConfigError(f"{where}: 'virusFilter' must be a non-empty string")
 
     journals_raw = data["journals"]
     if not isinstance(journals_raw, list) or not journals_raw:
@@ -355,8 +360,10 @@ def load_journals(paths: Paths = PATHS) -> JournalsConfig:
         if tier not in (1, 2, 3):
             raise ConfigError(f"{j_where}: tier must be 1, 2, or 3, got {tier!r}")
         scope = j["scope"]
-        if scope not in ("all", "topic"):
-            raise ConfigError(f"{j_where}: scope must be 'all' or 'topic', got {scope!r}")
+        if scope not in ("all", "topic", "virus"):
+            raise ConfigError(f"{j_where}: scope must be 'all', 'topic', or 'virus', got {scope!r}")
+        if scope == "virus" and virus_filter is None:
+            raise ConfigError(f"{j_where}: scope 'virus' requires a top-level 'virusFilter'")
         ta = j["ta"]
         if not isinstance(ta, str) or not ta.strip():
             raise ConfigError(f"{j_where}: 'ta' must be a non-empty string")
@@ -381,6 +388,7 @@ def load_journals(paths: Paths = PATHS) -> JournalsConfig:
         version=int(data["version"]),
         topic_filter=str(data["topicFilter"]),
         journals=tuple(journals),
+        virus_filter=virus_filter,
     )
 
 

@@ -24,6 +24,7 @@ import unittest
 from pathlib import Path
 
 from evidence_digest.config import ConfigError, Paths, load_all, load_journals, load_scoring, load_taxonomy
+from evidence_digest.cli import _build_term
 
 
 class RealConfigTests(unittest.TestCase):
@@ -228,6 +229,43 @@ class JournalsFailurePathTests(unittest.TestCase):
             {"name": "X", "ta": "X", "specialty": "heme", "tier": 1, "scope": "everything"}
         ])
         with self.assertRaises(ConfigError):
+            load_journals(self.tree.paths)
+
+    def test_virus_scope_requires_filter(self) -> None:
+        self.tree.write_journals([
+            {"name": "X", "ta": "X", "specialty": "heme", "tier": 1, "scope": "virus"}
+        ])
+        with self.assertRaisesRegex(ConfigError, "virusFilter"):
+            load_journals(self.tree.paths)
+
+    def test_virus_scope_uses_distinct_query(self) -> None:
+        journals = [
+            {"name": "X", "ta": "X", "specialty": "heme", "tier": 1, "scope": "virus"},
+            {"name": "Y", "ta": "Y", "specialty": "heme", "tier": 1, "scope": "topic"},
+            {"name": "Z", "ta": "Z", "specialty": "heme", "tier": 1, "scope": "all"},
+        ]
+        _write(self.tree.paths.journals_path, {
+            "version": 1,
+            "topicFilter": "immun*[tiab]",
+            "virusFilter": "(virus*[tiab] OR phage*[tiab])",
+            "journals": journals,
+        })
+        cfg = load_journals(self.tree.paths)
+        terms = [_build_term(j, cfg.topic_filter, cfg.virus_filter) for j in cfg.journals]
+        self.assertEqual(terms, [
+            '("X"[ta]) AND (virus*[tiab] OR phage*[tiab])',
+            '("Y"[ta]) AND immun*[tiab]',
+            '"Z"[ta]',
+        ])
+
+    def test_virus_scope_rejects_empty_filter(self) -> None:
+        _write(self.tree.paths.journals_path, {
+            "version": 1,
+            "topicFilter": "immun*[tiab]",
+            "virusFilter": " ",
+            "journals": [{"name": "X", "ta": "X", "specialty": "heme", "tier": 1, "scope": "virus"}],
+        })
+        with self.assertRaisesRegex(ConfigError, "virusFilter"):
             load_journals(self.tree.paths)
 
 

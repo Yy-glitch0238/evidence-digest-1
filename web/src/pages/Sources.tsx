@@ -167,6 +167,7 @@ export default function Sources() {
                 { value: '', label: 'Any coverage' },
                 { value: 'all', label: 'Every new article' },
                 { value: 'topic', label: 'Topic-filtered' },
+                { value: 'virus', label: 'Virus-focused' },
               ]}
             />
           </div>
@@ -208,7 +209,7 @@ export default function Sources() {
                     <td className="px-3 py-2.5 text-ink-muted">{humanize(j.specialty)}</td>
                     <td className="px-3 py-2.5 text-ink-muted">{j.tier}</td>
                     <td className="px-3 py-2.5 text-ink-muted">
-                      {j.scope === 'all' ? 'Every new article' : 'Topic-filtered'}
+                      {j.scope === 'all' ? 'Every new article' : j.scope === 'virus' ? 'Virus-focused' : 'Topic-filtered'}
                     </td>
                     <td className="px-3 py-2.5">
                       <a

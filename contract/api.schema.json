@@ -193,7 +193,7 @@
               "ta": { "type": "string" },
               "specialty": { "type": "string" },
               "tier": { "type": "integer" },
-              "scope": { "type": "string", "enum": ["all", "topic"] },
+              "scope": { "type": "string", "enum": ["all", "topic", "virus"] },
               "pubmedUrl": { "type": "string", "format": "uri" }
             }
           }
