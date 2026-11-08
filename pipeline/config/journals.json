@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "_comment": "Custom journal registry for virus, infection, and immunology evidence.",
-  "topicFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR infection*[tiab] OR immun*[tiab])",
+  "_comment": "Custom journal registry for selected biomedical evidence.",
+  "topicFilter": "(virus*[tiab] OR viral[tiab] OR virolog*[tiab] OR infection*[tiab] OR immun*[tiab] OR structure*[tiab] OR cancer*[tiab] OR antibody*[tiab])",
   "journals": [
     {
       "name": "Viruses",
@@ -57,14 +57,14 @@
       "ta": "Front Cell Infect Microbiol",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "all"
+      "scope": "topic"
     },
     {
       "name": "Frontiers in Microbiology",
       "ta": "Front Microbiol",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "all"
+      "scope": "topic"
     },
     {
       "name": "Journal of Virology",
@@ -176,7 +176,7 @@
       "ta": "Hum Vaccin Immunother",
       "specialty": "selected-journals",
       "tier": 2,
-      "scope": "all"
+      "scope": "topic"
     },
     {
       "name": "Nature Reviews Cancer",
@@ -219,6 +219,83 @@
       "specialty": "selected-journals",
       "tier": 1,
       "scope": "topic"
+    },
+    {
+      "name": "PLoS Pathogens",
+      "ta": "PLoS Pathog",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Nature Microbiology",
+      "ta": "Nat Microbiol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "topic"
+    },
+    {
+      "name": "Reviews in Medical Virology",
+      "ta": "Rev Med Virol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Virus Evolution",
+      "ta": "Virus Evol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Cell Discovery",
+      "ta": "Cell Discov",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "topic"
+    },
+    {
+      "name": "Current Opinion in Virology",
+      "ta": "Curr Opin Virol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Journal of Controlled Release",
+      "ta": "J Control Release",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "topic"
+    },
+    {
+      "name": "Science Advances",
+      "ta": "Sci Adv",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "topic"
+    },
+    {
+      "name": "Scientific Reports",
+      "ta": "Sci Rep",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "topic"
+    },
+    {
+      "name": "Frontiers in Immunology",
+      "ta": "Front Immunol",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
+    },
+    {
+      "name": "Antiviral Research",
+      "ta": "Antiviral Res",
+      "specialty": "selected-journals",
+      "tier": 2,
+      "scope": "all"
     }
   ]
 }
