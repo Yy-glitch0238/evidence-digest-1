@@ -55,10 +55,17 @@ free Cloudflare account and a free Brevo account.
 
 ## Chinese selected-journals feed (for fork owners)
 
-This optional Atom feed provides Chinese summaries of eligible research articles
-from the selected journals. Subscribe in Inoreader with this exact URL:
+These two Atom feeds provide Chinese summaries of eligible research articles
+from the selected journals. Each carries at most 100 articles; subscribe to both
+in Inoreader. If you already follow the first URL, keep it and add the second:
 
 <https://Yy-glitch0238.github.io/evidence-digest-1/feeds/selected-journals-zh.xml>
+
+<https://Yy-glitch0238.github.io/evidence-digest-1/feeds/selected-journals-zh-2.xml>
+
+Articles are assigned to a feed by PMID, so they do not move between feeds
+when a new weekly harvest changes their order. Together the feeds contain up
+to 200 distinct articles.
 
 Each card title is `【journal abbreviation】English article title`. Its Chinese
 body has four sections — `研究目的`, `研究方法`, `主要结果`, and `结论` — followed by

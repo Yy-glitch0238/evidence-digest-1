@@ -291,24 +291,37 @@ def build(
         and zh_summary.cache_matches(study, summaries[study["pmid"]])
     ]
     zh_candidates.sort(key=_sort_key)
-    zh_records: list[dict] = []
+    # Keep each feed below 100 entries for readers that truncate large updates.
+    # A PMID always stays in the same feed as newer records arrive.
+    zh_shards: tuple[list[dict], list[dict]] = ([], [])
     seen_zh_pmids: set[str] = set()
     for study in zh_candidates:
-        if study["pmid"] in seen_zh_pmids:
+        pmid = str(study["pmid"])
+        if pmid in seen_zh_pmids:
             continue
-        seen_zh_pmids.add(study["pmid"])
-        zh_records.append(study)
-        if len(zh_records) == 200:
+        seen_zh_pmids.add(pmid)
+        shard = zh_shards[int(pmid) % 2]
+        if len(shard) < 100:
+            shard.append(study)
+        if all(len(shard) == 100 for shard in zh_shards):
             break
 
     write_chinese_feed(
         paths.feeds_dir / "selected-journals-zh.xml",
-        studies=zh_records,
+        studies=zh_shards[0],
         summaries=summaries,
         site_url=site_url,
         generated_at=generated_at,
     )
-    feed_count += 1
+    write_chinese_feed(
+        paths.feeds_dir / "selected-journals-zh-2.xml",
+        studies=zh_shards[1],
+        summaries=summaries,
+        site_url=site_url,
+        generated_at=generated_at,
+        part=2,
+    )
+    feed_count += 2
 
     return {
         "totalStudies": len(all_records),

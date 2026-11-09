@@ -264,6 +264,24 @@ class WriteChineseFeedTests(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0].find("a:id", NS).text, "urn:evidence-digest:zh:12345678")
 
+    def test_second_feed_has_distinct_identity_and_self_link(self) -> None:
+        second_path = self.path.with_name("selected-journals-zh-2.xml")
+        feeds.write_chinese_feed(
+            second_path,
+            studies=[_card("12345679")],
+            summaries={"12345679": _zh_summary("12345679")},
+            site_url="https://example.org",
+            generated_at="2026-07-24T12:00:00Z",
+            part=2,
+        )
+        root = ET.parse(second_path).getroot()
+        self.assertEqual(root.find("a:title", NS).text, "Evidence Digest — 中文精选（第2组）")
+        self.assertEqual(root.find("a:id", NS).text, "urn:evidence-digest:zh:part:2")
+        self.assertEqual(
+            root.find("a:link[@rel='self']", NS).get("href"),
+            "https://example.org/feeds/selected-journals-zh-2.xml",
+        )
+
 
 class WriteAllFeedsTests(unittest.TestCase):
     def test_writes_one_file_per_topic_plus_all(self) -> None:

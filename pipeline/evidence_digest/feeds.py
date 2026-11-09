@@ -128,17 +128,27 @@ def write_chinese_feed(
     summaries: dict[str, dict],
     site_url: str,
     generated_at: str,
+    part: int = 1,
 ) -> None:
     """Write the filtered Chinese-summary Atom feed in the supplied order."""
+    if part < 1:
+        raise ValueError("Chinese feed part must be positive")
     base = site_url.rstrip("/") if site_url else ""
     feed = ET.Element(_tag("feed"))
-    _sub_text(feed, "title", "Evidence Digest — 中文精选")
-    _sub_text(feed, "id", "urn:evidence-digest:zh")
+    title = "Evidence Digest — 中文精选"
+    feed_id = "urn:evidence-digest:zh"
+    feed_name = "selected-journals-zh.xml"
+    if part > 1:
+        title += f"（第{part}组）"
+        feed_id += f":part:{part}"
+        feed_name = f"selected-journals-zh-{part}.xml"
+    _sub_text(feed, "title", title)
+    _sub_text(feed, "id", feed_id)
     _sub_text(feed, "updated", generated_at)
 
     self_link = ET.SubElement(feed, _tag("link"))
     self_link.set("rel", "self")
-    self_link.set("href", f"{base}/feeds/selected-journals-zh.xml")
+    self_link.set("href", f"{base}/feeds/{feed_name}")
 
     if base:
         alternate_link = ET.SubElement(feed, _tag("link"))

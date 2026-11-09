@@ -189,8 +189,9 @@ class BuildOutputTests(unittest.TestCase):
 
     def test_rebuild_is_byte_identical(self) -> None:
         first = (self.paths.api_dir / f"topics/{self.topic.slug}.json").read_bytes()
-        build.build(window_days=30, site_url="https://example.org", paths=self.paths, today=self.today,
-                    records=self.records)
+        with mock.patch("evidence_digest.build._now_iso", return_value=self.result["generatedAt"]):
+            build.build(window_days=30, site_url="https://example.org", paths=self.paths, today=self.today,
+                        records=self.records)
         second = (self.paths.api_dir / f"topics/{self.topic.slug}.json").read_bytes()
         self.assertEqual(first, second)
 
@@ -282,8 +283,9 @@ class ChineseFeedBuildTests(unittest.TestCase):
                 records=self.records,
             )
 
-    def _zh_entry_pmids(self) -> list[str]:
-        path = self.paths.feeds_dir / "selected-journals-zh.xml"
+    def _zh_entry_pmids(self, part: int = 1) -> list[str]:
+        name = "selected-journals-zh.xml" if part == 1 else f"selected-journals-zh-{part}.xml"
+        path = self.paths.feeds_dir / name
         root = ET.parse(path).getroot()
         ns = {"a": "http://www.w3.org/2005/Atom"}
         return [
@@ -295,26 +297,32 @@ class ChineseFeedBuildTests(unittest.TestCase):
         result = self._build()
         path = self.paths.feeds_dir / "selected-journals-zh.xml"
         self.assertTrue(path.exists())
+        self.assertTrue((self.paths.feeds_dir / "selected-journals-zh-2.xml").exists())
         pmids = self._zh_entry_pmids()
         self.assertIn("20000000", pmids)
         for study in self.ineligible:
-            self.assertNotIn(study["pmid"], pmids)
-        self.assertEqual(result["feeds"], len(self.taxonomy.all_topics) + 2)
+            self.assertNotIn(study["pmid"], pmids + self._zh_entry_pmids(2))
+        self.assertEqual(result["feeds"], len(self.taxonomy.all_topics) + 3)
 
-    def test_chinese_feed_uses_build_sort_deduplicates_and_caps_at_200(self) -> None:
+    def test_chinese_feeds_use_stable_shards_and_cap_at_100_each(self) -> None:
         self._build()
-        pmids = self._zh_entry_pmids()
-        expected_indices = [*range(100, -1, -1), *range(201, 102, -1)]
-        self.assertEqual(pmids, [str(20000000 + index) for index in expected_indices])
-        self.assertEqual(len(pmids), 200)
-        self.assertEqual(len(pmids), len(set(pmids)))
+        order = [*range(100, -1, -1), *range(201, 100, -1)]
+        all_pmids: list[str] = []
+        for part in (1, 2):
+            pmids = self._zh_entry_pmids(part)
+            expected = [str(20000000 + index) for index in order if index % 2 == part - 1][:100]
+            self.assertEqual(pmids, expected)
+            self.assertEqual(len(pmids), 100)
+            all_pmids.extend(pmids)
+        self.assertEqual(len(all_pmids), len(set(all_pmids)))
 
     def test_chinese_feed_rebuild_is_byte_identical(self) -> None:
         self._build()
-        path = self.paths.feeds_dir / "selected-journals-zh.xml"
-        first = path.read_bytes()
+        paths = [self.paths.feeds_dir / name for name in
+                 ("selected-journals-zh.xml", "selected-journals-zh-2.xml")]
+        first = [path.read_bytes() for path in paths]
         self._build()
-        self.assertEqual(path.read_bytes(), first)
+        self.assertEqual([path.read_bytes() for path in paths], first)
 
     def test_enrichment_cache_does_not_change_existing_english_feed_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -328,7 +336,7 @@ class ChineseFeedBuildTests(unittest.TestCase):
             before = {
                 path.name: path.read_bytes()
                 for path in paths.feeds_dir.glob("*.xml")
-                if path.name != "selected-journals-zh.xml"
+                if path.name not in {"selected-journals-zh.xml", "selected-journals-zh-2.xml"}
             }
 
             enrichment_store.write_day(
@@ -342,7 +350,7 @@ class ChineseFeedBuildTests(unittest.TestCase):
             after = {
                 path.name: path.read_bytes()
                 for path in paths.feeds_dir.glob("*.xml")
-                if path.name != "selected-journals-zh.xml"
+                if path.name not in {"selected-journals-zh.xml", "selected-journals-zh-2.xml"}
             }
             self.assertEqual(after, before)
 
