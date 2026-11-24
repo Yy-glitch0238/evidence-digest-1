@@ -60,6 +60,18 @@ jobs:
                   'result_keys': sorted(result) if isinstance(result, dict) else None,
                   'response_type': type(result.get('response')).__name__ if isinstance(result, dict) else None,
               }, ensure_ascii=False), flush=True)
+              choices = result.get('choices') if isinstance(result, dict) else None
+              choice = choices[0] if isinstance(choices, list) and choices else None
+              message = choice.get('message') if isinstance(choice, dict) else None
+              content = message.get('content') if isinstance(message, dict) else None
+              print('CHOICE_DIAGNOSTIC', json.dumps({
+                  'content_type': type(content).__name__,
+                  'content_prefix': str(content)[:180],
+                  'finish_reason': choice.get('finish_reason') if isinstance(choice, dict) else None,
+              }, ensure_ascii=False), flush=True)
+              if isinstance(content, str):
+                  result['response'] = content
+                  data = json.dumps(envelope, ensure_ascii=False).encode('utf-8')
               return io.BytesIO(data)
           client = cloudflare_ai.CloudflareAIClient(
               os.environ['CLOUDFLARE_ACCOUNT_ID'], os.environ['CLOUDFLARE_AI_TOKEN'],
