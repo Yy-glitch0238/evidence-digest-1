@@ -47,6 +47,9 @@ jobs:
               raise SystemExit(f'Test studies missing: {sorted(wanted - set(studies))}')
           cloudflare_ai.MODEL_ID = '@cf/google/gemma-4-26b-a4b-it'
           def diagnostic_opener(request, timeout):
+              body = json.loads(request.data)
+              body['chat_template_kwargs'] = {'enable_thinking': False}
+              request.data = json.dumps(body, ensure_ascii=False).encode('utf-8')
               with urllib.request.urlopen(request, timeout=timeout) as response:
                   data = response.read()
               envelope = json.loads(data)
