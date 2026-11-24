@@ -68,6 +68,22 @@ def structured_success_response(summary=VALID_SUMMARY):
     return FakeResponse(json.dumps(envelope, ensure_ascii=False).encode("utf-8"))
 
 
+def choices_response(summary=VALID_SUMMARY, *, finish_reason="stop", content=None):
+    model_content = json.dumps(summary, ensure_ascii=False) if content is None else content
+    envelope = {
+        "success": True,
+        "result": {
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": model_content},
+                    "finish_reason": finish_reason,
+                }
+            ],
+        },
+    }
+    return FakeResponse(json.dumps(envelope, ensure_ascii=False).encode("utf-8"))
+
+
 def http_error(code):
     return urllib.error.HTTPError(
         "https://api.cloudflare.com", code, "sensitive server message", {}, io.BytesIO()
@@ -100,6 +116,7 @@ class CloudflareAIClientTests(unittest.TestCase):
                 "temperature": 0.1,
                 "stream": False,
                 "response_format": {"type": "json_object"},
+                "chat_template_kwargs": {"enable_thinking": False},
             },
         )
         self.assertEqual(response.read_sizes, [1024 * 1024])
@@ -121,6 +138,29 @@ class CloudflareAIClientTests(unittest.TestCase):
         self.assertEqual(result, VALID_SUMMARY)
         self.assertEqual(len(opener.requests), 1)
 
+    def test_accepts_gemma_choices_response(self):
+        self.assertEqual(MODEL_ID, "@cf/google/gemma-4-26b-a4b-it")
+        opener = FakeOpener([choices_response()])
+        client = CloudflareAIClient(
+            "account-123", TOKEN, opener=opener, sleep_fn=self.fail
+        )
+
+        self.assertEqual(client.summarize(STUDY), VALID_SUMMARY)
+        self.assertEqual(len(opener.requests), 1)
+
+    def test_retries_truncated_gemma_response(self):
+        sleeps = []
+        opener = FakeOpener(
+            [choices_response(content="", finish_reason="length"), choices_response()]
+        )
+        client = CloudflareAIClient(
+            "account-123", TOKEN, opener=opener, sleep_fn=sleeps.append
+        )
+
+        self.assertEqual(client.summarize(STUDY), VALID_SUMMARY)
+        self.assertEqual(len(opener.requests), 2)
+        self.assertEqual(sleeps, [1.0])
+
     def test_retries_retryable_failures_twice_then_succeeds(self):
         retryable_failures = {
             "HTTP 429": http_error(429),
@@ -129,6 +169,9 @@ class CloudflareAIClientTests(unittest.TestCase):
             "timeout": TimeoutError("timeout detail"),
             "invalid envelope JSON": FakeResponse(b"not-json"),
             "missing response": FakeResponse(b'{"success":true,"result":{}}'),
+            "missing Gemma message": FakeResponse(
+                b'{"success":true,"result":{"choices":[{"finish_reason":"stop"}]}}'
+            ),
             "false success": FakeResponse(b'{"success":false,"result":{}}'),
             "invalid model JSON": FakeResponse(
                 b'{"success":true,"result":{"response":"not-json"}}'
