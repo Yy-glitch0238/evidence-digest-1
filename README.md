@@ -77,7 +77,7 @@ other non-research items are excluded.
 ### One-time setup
 
 The Chinese summaries use Cloudflare Workers AI model
-`@cf/google/gemma-4-26b-a4b-it`. In your GitHub fork, add these two repository
+`@cf/google/gemma-4-26b-a4b-it` with thinking disabled. In your GitHub fork, add these two repository
 secrets (use your own Cloudflare values; never put them in this README or a
 commit):
 
@@ -86,8 +86,8 @@ commit):
 
 In GitHub, open `Settings → Secrets and variables → Actions → New repository secret`
 and add each name and its value. The normal Harvest schedule runs every Sunday at
-23:00 Beijing time (Sunday 15:00 UTC). If the workflow reaches `main` before then,
-the first scheduled run is 2026-08-09 at 23:00 Beijing time.
+23:00 Beijing time (Sunday 15:00 UTC). After a model change, the next Harvest regenerates matching summaries;
+rebuild Pages only after that Harvest completes.
 
 ### Refreshing and recovery
 
