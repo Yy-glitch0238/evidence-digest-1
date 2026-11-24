@@ -8,7 +8,7 @@ import json
 import re
 
 
-MODEL_ID = "@cf/qwen/qwen3-30b-a3b-fp8"
+MODEL_ID = "@cf/google/gemma-4-26b-a4b-it"
 PROMPT_VERSION = "zh-v1"
 SUMMARY_FIELDS = ("objective", "methods", "results", "conclusion")
 
