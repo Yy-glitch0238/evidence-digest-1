@@ -83,6 +83,7 @@ class CloudflareAIClient:
                 "temperature": 0.1,
                 "stream": False,
                 "response_format": {"type": "json_object"},
+                "chat_template_kwargs": {"enable_thinking": False},
             },
             ensure_ascii=False,
         ).encode("utf-8")
@@ -105,6 +106,17 @@ class CloudflareAIClient:
         if not isinstance(result, dict):
             raise _EnvelopeError("missing model response")
         model_response = result.get("response")
+        if model_response is None:
+            choices = result.get("choices")
+            if not isinstance(choices, list) or len(choices) != 1:
+                raise _EnvelopeError("missing model response")
+            choice = choices[0]
+            if not isinstance(choice, dict) or choice.get("finish_reason") != "stop":
+                raise _EnvelopeError("incomplete model response")
+            message = choice.get("message")
+            if not isinstance(message, dict):
+                raise _EnvelopeError("missing model response")
+            model_response = message.get("content")
         if isinstance(model_response, dict):
             model_response = json.dumps(model_response, ensure_ascii=False)
         elif not isinstance(model_response, str):
