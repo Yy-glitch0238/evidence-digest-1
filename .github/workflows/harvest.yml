@@ -1,213 +1,54 @@
 name: Harvest
 
-# The heartbeat of the project: pull newly-indexed PubMed records, commit the
-# immutable archive, rebuild the static API + web app, and redeploy. Everything
-# else (the web UI, the email digests) is downstream of this workflow succeeding
-# once a week. See evidence-digest-docs/operations.md for the runbook if this
-# workflow goes red.
-
+# Test branch only. The production workflow remains unchanged on main.
 on:
-  schedule:
-    # Sunday 15:00 UTC / 23:00 Beijing, after the weekly harvest window.
-    - cron: '0 15 * * 0'
   workflow_dispatch:
-    inputs:
-      days:
-        description: 'PubMed lookback window in days'
-        required: false
-        default: '8'
-      skip_deploy:
-        description: 'Harvest and commit only — skip building and deploying the site'
-        type: boolean
-        required: false
-        default: false
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-# Only one harvest/deploy at a time: a second run starting mid-commit or
-# mid-deploy could race the first and either lose data or deploy a half-built
-# site. `cancel-in-progress: false` because a harvest run does real, valuable
-# work (an API-throttled crawl of ~150 journals) that a manual re-run
-# shouldn't discard — queue behind it instead of killing it.
-concurrency:
-  group: evidence-digest-deploy
-  cancel-in-progress: false
-
-env:
-  # Repository variable lets an operator pin a custom domain (see
-  # evidence-digest-docs/deployment.md, "Custom domain"); otherwise this
-  # resolves to the standard project-page URL for whichever fork/repo this
-  # workflow is running in.
-  SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+  contents: read
 
 jobs:
-  harvest:
+  gemma_smoke:
+    name: Gemma JSON API smoke test (no harvest or deploy)
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          # No `cache: pip` here on purpose: the pipeline is stdlib-only by design
-          # (see pipeline/README.md and evidence-digest-docs/architecture.md) — there
-          # is no requirements.txt to key a cache on, and setup-python's cache input
-          # fails the step outright when it can't find one to hash.
-
-      - name: Validate configuration
-        # PYTHONPATH=pipeline: `evidence_digest` is a package under pipeline/,
-        # not installed (this project stays stdlib-only, no `pip install`), so
-        # it must be put on the import path explicitly — see
-        # pipeline/evidence_digest/config.py's Paths, which resolves data/ etc.
-        # relative to the package file itself specifically so this works
-        # correctly from any cwd, including the repo root used throughout CI.
-        env:
-          PYTHONPATH: pipeline
-        run: python -m evidence_digest.cli validate
-
-      - name: Harvest newly indexed studies
-        id: harvest
-        env:
-          PYTHONPATH: pipeline
-          # Both secrets are OPTIONAL. An unset GitHub secret resolves to an empty
-          # string when referenced like this — it does not fail the step — and the
-          # CLI must treat an empty value the same as "not configured" (falling back
-          # to PubMed's unauthenticated 3 req/s rate limit instead of the 10 req/s an
-          # API key + email unlock). Do not add an `if:` guard around this step for
-          # the secrets' sake; none is needed.
-          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
-          PUBMED_EMAIL: ${{ secrets.PUBMED_EMAIL }}
-        run: |
-          DAYS="${{ inputs.days || '8' }}"
-          echo "days=$DAYS" >> "$GITHUB_OUTPUT"
-          echo "log=${RUNNER_TEMP}/harvest.log" >> "$GITHUB_OUTPUT"
-          echo "Harvesting the last $DAYS day(s) of PubMed indexing..."
-          # `cli harvest` writes data/state/runs.json itself before it ever exits
-          # (see pipeline/evidence_digest/cli.py's _write_run_outputs), including
-          # on a total failure — so this step is allowed to fail (all journals
-          # erroring returns exit 1) without losing that record. The Commit/
-          # Check-health/Write-summary steps below run with `if: !cancelled()`
-          # specifically so a hard failure here still gets committed and
-          # reported instead of vanishing silently (Build/Deploy stay skipped,
-          # since they have no such override). The log is also captured because
-          # per-specialty counts and "hit the retmax cap" journals are printed
-          # to stdout but never written to runs.json.
-          python -m evidence_digest.cli harvest --days "$DAYS" 2>&1 | tee "${RUNNER_TEMP}/harvest.log"
-          exit "${PIPESTATUS[0]}"
-
-      - name: Enrich eligible studies in Chinese
-        if: ${{ !cancelled() }}
+      - name: Test three existing abstracts against the current API contract
         env:
           PYTHONPATH: pipeline
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_AI_TOKEN: ${{ secrets.CLOUDFLARE_AI_TOKEN }}
-        run: python -m evidence_digest.cli enrich-zh --limit 200
-
-      - name: Commit archive + state + enrichment
-        id: commit
-        if: ${{ !cancelled() }}
         run: |
-          # mkdir -p first: on a very early or total-failure run, one of these
-          # any of these directories may not exist yet (e.g. every journal erroring
-          # means no archive file was ever written, or enrichment safely skipped),
-          # and `git add` treats a missing pathspec as fatal and aborts the entire
-          # add rather than staging the paths that do exist.
-          mkdir -p data/archive data/state data/enrichment/zh
+          python - <<'PY'
+          import gzip
+          import json
+          import os
+          import evidence_digest.cloudflare_ai as cloudflare_ai
 
-          git config user.name 'evidence-digest-bot'
-          git config user.email 'evidence-digest-bot@users.noreply.github.com'
-          git add data/archive data/state data/enrichment
-
-          if git diff --cached --quiet; then
-            echo 'Nothing new to commit (0 new studies, or an already-seen window).'
-            echo 'committed=false' >> "$GITHUB_OUTPUT"
-          else
-            # data/state/runs.json is written by `cli harvest` itself, one record per
-            # run, newest last (see scripts/ci-harvest-report.py for the exact shape
-            # this workflow expects, and evidence-digest-docs/operations.md for the
-            # human-readable version). Reading the count from there, rather than
-            # parsing harvest's stdout, keeps the commit message and the step summary
-            # reading from a single source of truth.
-            NEW_COUNT="$(python3 scripts/ci-harvest-report.py latest-count)"
-            TODAY=$(date -u +%F)
-            git commit -m "data: harvest ${TODAY} (${NEW_COUNT} new studies)"
-
-            # Push with rebase-and-retry. This job checks out with fetch-depth 1 and
-            # can run for several minutes (a throttled crawl of ~152 journals), so
-            # main may well have moved underneath it — a docs commit, a merged PR, a
-            # manual dispatch. A bare `git push` would then fail and throw away a
-            # completed harvest, and because the seen-store was already updated in
-            # that lost commit, the dropped studies would NOT reappear in the next
-            # scheduled window: they would be silently missing from the archive.
-            # Rebasing is safe here because this job writes immutable date-named
-            # archive files, deterministic harvest state, and dated enrichment
-            # caches under data/enrichment/zh.
-            pushed=false
-            for attempt in 1 2 3; do
-              if git push; then
-                pushed=true
-                break
-              fi
-              echo "Push attempt ${attempt} failed; rebasing onto the updated remote and retrying..."
-              git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
-              sleep $(( attempt * 5 ))
-            done
-            if [ "$pushed" != true ]; then
-              echo "::error::Could not push the harvest commit after 3 attempts. The archive for ${TODAY} is committed locally but NOT on the remote, and the seen-store has advanced. Re-run this workflow with a wider --days window to recover the missed records (the seen-store prevents duplicates, so widening is always safe). See evidence-digest-docs/operations.md."
-              exit 1
-            fi
-            echo 'committed=true' >> "$GITHUB_OUTPUT"
-            echo "new_count=${NEW_COUNT}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check harvest health
-        id: health
-        if: ${{ !cancelled() }}
-        run: python3 scripts/ci-harvest-report.py health
-
-      - name: Build site
-        if: ${{ !inputs.skip_deploy }}
-        uses: ./.github/actions/build-site
-        with:
-          site-url: ${{ env.SITE_URL }}
-          # Empty until the operator deploys the Worker and sets this repository
-          # variable (scripts/setup-cloudflare.sh prints the exact value). Empty is
-          # a valid, fully-functional state: the site runs in browse-only mode with
-          # Atom feeds. Because Vite inlines env vars at build time, setting the
-          # variable only takes effect on the NEXT build — this workflow or pages.yml.
-          worker-url: ${{ vars.VITE_WORKER_URL }}
-
-      - name: Upload Pages artifact
-        if: ${{ !inputs.skip_deploy }}
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/dist
-
-      - name: Deploy to GitHub Pages
-        if: ${{ !inputs.skip_deploy }}
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Write run summary
-        if: ${{ !cancelled() }}
-        run: |
-          DEPLOYED_URL=""
-          if [ "${{ steps.deployment.outcome }}" = "success" ]; then
-            DEPLOYED_URL="${SITE_URL}"
-          fi
-          python3 scripts/ci-harvest-report.py summary \
-            --site-url "$DEPLOYED_URL" \
-            --log "${RUNNER_TEMP}/harvest.log" \
-            --output "$GITHUB_STEP_SUMMARY"
-        env:
-          SITE_URL: ${{ env.SITE_URL }}
+          if not os.environ.get('CLOUDFLARE_ACCOUNT_ID') or not os.environ.get('CLOUDFLARE_AI_TOKEN'):
+              raise SystemExit('Cloudflare repository secrets are missing')
+          wanted = {'42993728', '42994118', '42996469'}
+          studies = {}
+          for path in ('data/archive/2026-11-06.jsonl.gz', 'data/archive/2026-11-07.jsonl.gz'):
+              with gzip.open(path, 'rt', encoding='utf-8') as source:
+                  for line in source:
+                      study = json.loads(line)
+                      if str(study.get('pmid')) in wanted:
+                          studies[str(study['pmid'])] = study
+          if set(studies) != wanted:
+              raise SystemExit(f'Test studies missing: {sorted(wanted - set(studies))}')
+          cloudflare_ai.MODEL_ID = '@cf/google/gemma-4-26b-a4b-it'
+          client = cloudflare_ai.CloudflareAIClient(
+              os.environ['CLOUDFLARE_ACCOUNT_ID'], os.environ['CLOUDFLARE_AI_TOKEN']
+          )
+          for pmid in sorted(wanted):
+              summary = client.summarize(studies[pmid])
+              print(json.dumps({'pmid': pmid, **summary}, ensure_ascii=False))
+          print('PASS: three API responses met the four-field Chinese JSON contract')
+          PY
