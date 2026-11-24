@@ -27,6 +27,8 @@ jobs:
         run: |
           python - <<'PY'
           import gzip
+          import io
+          import urllib.request
           import json
           import os
           import evidence_digest.cloudflare_ai as cloudflare_ai
@@ -44,8 +46,24 @@ jobs:
           if set(studies) != wanted:
               raise SystemExit(f'Test studies missing: {sorted(wanted - set(studies))}')
           cloudflare_ai.MODEL_ID = '@cf/google/gemma-4-26b-a4b-it'
+          def diagnostic_opener(request, timeout):
+              with urllib.request.urlopen(request, timeout=timeout) as response:
+                  data = response.read()
+              envelope = json.loads(data)
+              result = envelope.get('result') if isinstance(envelope, dict) else None
+              errors = envelope.get('errors', []) if isinstance(envelope, dict) else []
+              print('API_DIAGNOSTIC', json.dumps({
+                  'success': envelope.get('success') if isinstance(envelope, dict) else None,
+                  'error_codes': [item.get('code') for item in errors if isinstance(item, dict)],
+                  'error_messages': [str(item.get('message', ''))[:180] for item in errors if isinstance(item, dict)],
+                  'result_type': type(result).__name__,
+                  'result_keys': sorted(result) if isinstance(result, dict) else None,
+                  'response_type': type(result.get('response')).__name__ if isinstance(result, dict) else None,
+              }, ensure_ascii=False), flush=True)
+              return io.BytesIO(data)
           client = cloudflare_ai.CloudflareAIClient(
-              os.environ['CLOUDFLARE_ACCOUNT_ID'], os.environ['CLOUDFLARE_AI_TOKEN']
+              os.environ['CLOUDFLARE_ACCOUNT_ID'], os.environ['CLOUDFLARE_AI_TOKEN'],
+              opener=diagnostic_opener,
           )
           for pmid in sorted(wanted):
               summary = client.summarize(studies[pmid])
