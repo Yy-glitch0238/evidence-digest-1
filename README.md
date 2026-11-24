@@ -77,7 +77,7 @@ other non-research items are excluded.
 ### One-time setup
 
 The Chinese summaries use Cloudflare Workers AI model
-`@cf/qwen/qwen3-30b-a3b-fp8`. In your GitHub fork, add these two repository
+`@cf/google/gemma-4-26b-a4b-it`. In your GitHub fork, add these two repository
 secrets (use your own Cloudflare values; never put them in this README or a
 commit):
 
